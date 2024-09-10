@@ -10,9 +10,12 @@ unsigned long get_time_ms(struct timeval start_time)
 int death_control(t_phi *p)
 {
 	unsigned long timestamp;
-
+	pthread_mutex_lock(p->print_mutex);
 	if(*p->is_dead == 1)
+	{	
+		pthread_mutex_unlock(p->print_mutex);
 		return 1;
+	}
 	timestamp = get_time_ms(p->start_time);
 	if((timestamp - p->last_meal) > p->t_die)
 	{
@@ -23,16 +26,59 @@ int death_control(t_phi *p)
 			printf("%lu ms fiosofo %d esta muerto\n", timestamp, p->id);
 			*p->is_dead = 1;
 		}
+		pthread_mutex_unlock(p->print_mutex);
 		return 1;
 	}
+	pthread_mutex_unlock(p->print_mutex);
+}
+
+void is_eating(t_phi *p, int i)
+{
+	unsigned long timestamp;
+	int f;
+
+	f = 0;
+	if(pthread_mutex_lock(p->r_fork_mutex) == 0)
+		f = 1;
+	if(f == 1)
+	pthread_mutex_lock(p->l_fork_mutex);
+	pthread_mutex_lock(p->print_mutex);
+	timestamp = get_time_ms(p->start_time);
+	printf("%lu ms fiosofo %d esta comiendo por %ia vez\n", timestamp, p->id, (i+1));
+	p->last_meal = timestamp;	
+	pthread_mutex_unlock(p->print_mutex);
+	usleep(p->t_eat*1000);
+	if(f == 1)
+		pthread_mutex_unlock(p->l_fork_mutex);
+	pthread_mutex_unlock(p->r_fork_mutex);
+}
+
+void is_thinking(t_phi *p)
+{
+	unsigned long timestamp;
+
+	pthread_mutex_lock(p->print_mutex);
+	timestamp = get_time_ms(p->start_time);
+	printf("%lu ms fiosofo %d esta pensando\n", timestamp, p->id);
+	pthread_mutex_unlock(p->print_mutex);
+}
+
+void is_sleeping(t_phi *p)
+{
+	unsigned long timestamp;
+
+	pthread_mutex_lock(p->print_mutex);
+	timestamp = get_time_ms(p->start_time);	
+	printf("%lu ms fiosofo %d esta durmiendo\n", timestamp, p->id);
+	//p->last_meal = timestamp;	
+	pthread_mutex_unlock(p->print_mutex);
+	usleep(p->t_sleep*1000);
 }
 
 void *philosopher_action_infinite(void *arg)
 {
  	t_phi *p;
-	unsigned long timestamp;
 	int i;
-	int f;
 		
 	i = 0;
 	p = (t_phi *)arg;
@@ -40,51 +86,15 @@ void *philosopher_action_infinite(void *arg)
 	p->last_meal = get_time_ms(p->start_time);
 	while(1)
 	{	
-		f = 0;
-		pthread_mutex_lock(p->print_mutex);
 		if(death_control(p) == 1)
-		{
-			pthread_mutex_unlock(p->print_mutex);
 			return NULL;
-		}
-		pthread_mutex_unlock(p->print_mutex);
-		pthread_mutex_lock(p->print_mutex);
-		timestamp = get_time_ms(p->start_time);
-		printf("%lu ms fiosofo %d esta pensando\n", timestamp, p->id);
-		pthread_mutex_unlock(p->print_mutex);
-		pthread_mutex_lock(p->print_mutex);
+		is_thinking(p);
 		if(death_control(p) == 1)
-		{
-			pthread_mutex_unlock(p->print_mutex);
 			return NULL;
-		}
-		pthread_mutex_unlock(p->print_mutex);
-		if(pthread_mutex_lock(p->r_fork_mutex) == 0)
-			f = 1;
-		if(f == 1)
-			pthread_mutex_lock(p->l_fork_mutex);
-		pthread_mutex_lock(p->print_mutex);
-		timestamp = get_time_ms(p->start_time);
-		printf("%lu ms fiosofo %d esta comiendo por %ia vez\n", timestamp, p->id, (i+1));
-		p->last_meal = timestamp;	
-		pthread_mutex_unlock(p->print_mutex);
-		usleep(p->t_eat*1000);
-		if(f == 1)
-			pthread_mutex_unlock(p->l_fork_mutex);
-		pthread_mutex_unlock(p->r_fork_mutex);
-		pthread_mutex_lock(p->print_mutex);
+		is_eating(p, i);
 		if(death_control(p) == 1)
-		{
-			pthread_mutex_unlock(p->print_mutex);
 			return NULL;
-		}
-		pthread_mutex_unlock(p->print_mutex);
-		pthread_mutex_lock(p->print_mutex);
-		timestamp = get_time_ms(p->start_time);	
-		printf("%lu ms fiosofo %d esta durmiendo\n", timestamp, p->id);
-		//p->last_meal = timestamp;	
-		pthread_mutex_unlock(p->print_mutex);
-		usleep(p->t_sleep*1000);
+		is_sleeping(p);
 		i++;
 	}
 	return NULL;
@@ -93,9 +103,7 @@ void *philosopher_action_infinite(void *arg)
 void *philosopher_action(void *arg)
 {
  	t_phi *p;
-	unsigned long timestamp;
 	int i;
-	int f;
 	
 	i = 0;
 	p = (t_phi *)arg;
@@ -103,105 +111,17 @@ void *philosopher_action(void *arg)
 	p->last_meal = get_time_ms(p->start_time);
 	while(i < p->must_eat)
 	{
-		f = 0;
-		pthread_mutex_lock(p->print_mutex);
-		if(*p->is_dead == 1)
-		{
-			pthread_mutex_unlock(p->print_mutex);
-			break;
-		}
-		pthread_mutex_unlock(p->print_mutex);
-		pthread_mutex_lock(p->print_mutex);
-		timestamp = get_time_ms(p->start_time);
-		if((timestamp - p->last_meal) > p->t_die)
-		{
-			/*printf("%lu ms fiosofo %d esta muerto\n", timestamp, p->id);
-			*p->is_dead = 1;*/
-			if(*p->is_dead == 0)
-			{
-				printf("%lu ms fiosofo %d esta muerto\n", timestamp, p->id);
-				*p->is_dead = 1;
-			}
-			pthread_mutex_unlock(p->print_mutex);
+		if(death_control(p) == 1)
 			return NULL;
-		}
-		pthread_mutex_unlock(p->print_mutex);
-		pthread_mutex_lock(p->print_mutex);
-		timestamp = get_time_ms(p->start_time);
-		printf("%lu ms fiosofo %d esta pensando\n", timestamp, p->id);
-		pthread_mutex_unlock(p->print_mutex);
-		pthread_mutex_lock(p->print_mutex);
-		if(*p->is_dead == 1)
-		{
-			pthread_mutex_unlock(p->print_mutex);
-			break;
-		}
-		pthread_mutex_unlock(p->print_mutex);
-		pthread_mutex_lock(p->print_mutex);
-		if(*p->is_dead == 1)
-		{
-			pthread_mutex_unlock(p->print_mutex);
-			break;
-		}
-		pthread_mutex_unlock(p->print_mutex);
-		pthread_mutex_lock(p->print_mutex);
-		timestamp = get_time_ms(p->start_time);
-		if((timestamp - p->last_meal) > p->t_die)
-		{
-			/*printf("%lu ms fiosofo %d esta muerto\n", timestamp, p->id);
-			*p->is_dead = 1;*/
-			if(*p->is_dead == 0)
-			{
-				printf("%lu ms fiosofo %d esta muerto\n", timestamp, p->id);
-				*p->is_dead = 1;
-			}
-			pthread_mutex_unlock(p->print_mutex);
+		is_thinking(p);
+		if(death_control(p) == 1)
 			return NULL;
-		}
-		pthread_mutex_unlock(p->print_mutex);
-		if(pthread_mutex_lock(p->r_fork_mutex) == 0)
-			f = 1;
-		if(f == 1)
-			pthread_mutex_lock(p->l_fork_mutex);
-		pthread_mutex_lock(p->print_mutex);
-		timestamp = get_time_ms(p->start_time);
-		printf("%lu ms fiosofo %d esta comiendo por %ia vez\n", timestamp, p->id, (i+1));
-		p->last_meal = timestamp;	
-		pthread_mutex_unlock(p->print_mutex);
-		usleep(p->t_eat*1000);
-		if(f == 1)
-			pthread_mutex_unlock(p->l_fork_mutex);
-		pthread_mutex_unlock(p->r_fork_mutex);
+		is_eating(p, i);
 		if(p->must_eat > (i+1))
 		{
-			pthread_mutex_lock(p->print_mutex);
-			if(*p->is_dead == 1)
-			{
-				pthread_mutex_unlock(p->print_mutex);
-				break;
-			}
-			pthread_mutex_unlock(p->print_mutex);
-			pthread_mutex_lock(p->print_mutex);
-			timestamp = get_time_ms(p->start_time);
-			if((timestamp - p->last_meal) > p->t_die)
-			{
-				/*printf("%lu ms fiosofo %d esta muerto\n", timestamp, p->id);
-				*p->is_dead = 1;*/
-				if(*p->is_dead == 0)
-				{
-					printf("%lu ms fiosofo %d esta muerto\n", timestamp, p->id);
-					*p->is_dead = 1;
-				}
-				pthread_mutex_unlock(p->print_mutex);
+			if(death_control(p) == 1)
 				return NULL;
-			}
-			pthread_mutex_unlock(p->print_mutex);
-			pthread_mutex_lock(p->print_mutex);
-			timestamp = get_time_ms(p->start_time);	
-			printf("%lu ms fiosofo %d esta durmiendo\n", timestamp, p->id);
-			//p->last_meal = timestamp;	
-			pthread_mutex_unlock(p->print_mutex);
-			usleep(p->t_sleep*1000);
+			is_sleeping(p);
 		}
 		i++;
 	}
@@ -236,14 +156,10 @@ void init_forks(pthread_mutex_t *forks, char **argv)
 	}
 }
 
-t_phi *fill_philosophers(char **argv, pthread_mutex_t *forks, pthread_mutex_t *print_mutex)
-{	
+t_phi *malloc_phil(char **argv, pthread_mutex_t *forks)
+{
 	t_phi *phil;
-	int i;
-	struct timeval start_time;
-	int is_dead;
-
-	is_dead = 0;
+	
 	phil = (t_phi*)malloc(atoi(argv[1])*sizeof(t_phi));
 	if(!phil)
 	{
@@ -251,18 +167,36 @@ t_phi *fill_philosophers(char **argv, pthread_mutex_t *forks, pthread_mutex_t *p
 		free(forks);
 		exit(EXIT_FAILURE);
 	}
+	return (phil);
+}
+
+t_phi fill_int_philosophers(char **argv, t_phi *phil, int i)
+{
+	phil[i].id = i + 1;
+	phil[i].t_die = (unsigned int)atoi(argv[2]);
+	phil[i].t_eat = (unsigned int)atoi(argv[3]);
+	phil[i].t_sleep = (unsigned int)atoi(argv[4]);
+	if(argv[5])		
+		phil[i].must_eat = (unsigned int)atoi(argv[5]);	
+	else
+		phil[i].must_eat = 0;
+	return (phil[i]);
+}
+
+t_phi *fill_philosophers(char **argv, pthread_mutex_t *forks, pthread_mutex_t *print_mutex)
+{
+	t_phi *phil;
+	int i;
+	struct timeval start_time;
+	int is_dead;
+
+	is_dead = 0;
+	phil = malloc_phil(argv, forks);
 	gettimeofday(&start_time, NULL);
 	i = 0;
 	while(i < atoi(argv[1]))
 	{
-		phil[i].id = i + 1;
-		phil[i].t_die = (unsigned int)atoi(argv[2]);
-		phil[i].t_eat = (unsigned int)atoi(argv[3]);
-		phil[i].t_sleep = (unsigned int)atoi(argv[4]);
-		if(argv[5])		
-			phil[i].must_eat = (unsigned int)atoi(argv[5]);	
-		else
-			phil[i].must_eat = 0;
+		phil[i] =  fill_int_philosophers(argv, phil, i);
 		phil[i].start_time = start_time;
 		phil[i].last_meal = 0;
 		phil[i].r_fork_mutex = &forks[i];
@@ -298,17 +232,9 @@ pthread_t *create_join(t_phi *phil, pthread_mutex_t *forks, char **argv)
 	while(i < atoi(argv[1]))
 	{
 		if(argv[5])
-		{
-			/*if(*phil->is_dead == 1)
-				pthread_detach(threads[i]);*/
 			pthread_create(&threads[i], NULL, philosopher_action, &phil[i]);
-		}
 		else
-		{
-			/*if(*phil->is_dead == 1)
-				pthread_detach(threads[i]);*/
 			pthread_create(&threads[i], NULL, philosopher_action_infinite, &phil[i]);
-		}
 		i++;
 	}
 	i = 0;
