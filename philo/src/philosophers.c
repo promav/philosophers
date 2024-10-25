@@ -6,7 +6,7 @@
 /*   By: pabromer <pabromer@student.42malaga.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/17 15:31:24 by pabromer          #+#    #+#             */
-/*   Updated: 2024/10/10 18:28:15 by pabromer         ###   ########.fr       */
+/*   Updated: 2024/10/25 14:29:10 by pabromer         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,10 +14,10 @@
 
 void	*ft_philosofer_rutine(void *param)
 {
-	t_phi			*philo;
+	t_phi			*philo;						
 
 	philo = (t_phi *)param;
-	while (0 < philo->must_eat)
+	while (philo->must_eat != 0)
 	{
 		if (*philo->is_dead == 1)
 			return (NULL);
@@ -25,15 +25,29 @@ void	*ft_philosofer_rutine(void *param)
 		if (*philo->is_dead == 1)
 			return (NULL);
 		ft_is_eating(philo);
-		if (philo->must_eat - 1 > 0)
+		if (philo->must_eat != 0)
 		{
 			if (*philo->is_dead == 1)
 				return (NULL);
 			ft_is_sleeping(philo);
 		}
-		philo->must_eat--;
 	}
 	return (NULL);
+}
+int ft_all_eat(t_phi *philo)
+{
+	int	i;
+	int j;
+
+	i = 0;
+	j = 0;
+	while(i < philo[i].num_philo)
+	{
+		if (philo[i].must_eat != 0)
+			j = -1;
+		i++;
+	}
+	return j;
 }
 
 void	*ft_observer_rutine(void *param)
@@ -57,7 +71,7 @@ void	*ft_observer_rutine(void *param)
 				pthread_mutex_unlock(philo->print_mutex);
 				return (NULL);
 			}
-			else if (philo->must_eat - 1 <= 0)
+			else if (ft_all_eat(philo) == 0)
 				return (NULL);
 			i++;
 		}
@@ -99,7 +113,7 @@ void	ft_philosophers(char **argv)
 	pthread_t		*threads;
 
 	philo = ft_init_philosophers(argv);
-	ft_init_mutex_null(&philo, argv);
+	ft_init_mutex_null(&philo);
 	forks = ft_init_forks(argv, philo);
 	if (pthread_mutex_init(&print_mutex, NULL) != 0)
 	{

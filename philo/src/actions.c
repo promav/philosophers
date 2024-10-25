@@ -6,7 +6,7 @@
 /*   By: pabromer <pabromer@student.42malaga.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/09 10:25:31 by pabromer          #+#    #+#             */
-/*   Updated: 2024/10/10 19:01:50 by pabromer         ###   ########.fr       */
+/*   Updated: 2024/10/25 14:29:35 by pabromer         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@ int	ft_is_dead(t_phi *philo)
 		pthread_mutex_unlock(philo->print_mutex);
 		return (-1);
 	}
+	return (0);
 }
 
 void	ft_is_thinking(t_phi *philo)
@@ -46,6 +47,7 @@ int	ft_finish_eat(t_phi *philo)
 	nowtime = get_time_ms(philo->start_time);
 	printf("%lu ms %i is eating\n", nowtime, philo->id);
 	philo->last_meal = nowtime;
+	philo->must_eat--;
 	pthread_mutex_unlock(philo->print_mutex);
 	usleep(philo->t_eat * 1000);
 	pthread_mutex_unlock(philo->l_fork_mutex);
@@ -55,7 +57,6 @@ int	ft_finish_eat(t_phi *philo)
 
 void	ft_is_eating(t_phi *philo)
 {
-	unsigned long	nowtime;
 	int				flag;
 
 	flag = 0;
@@ -70,14 +71,17 @@ void	ft_is_eating(t_phi *philo)
 		pthread_mutex_unlock(philo->r_fork_mutex);
 		return ;
 	}
-	if (print_has_fork(philo) == -1)
+	else
 	{
-		pthread_mutex_unlock(philo->l_fork_mutex);
-		pthread_mutex_unlock(philo->r_fork_mutex);
-		return ;
+		if (print_has_fork(philo) == -1)
+		{
+			pthread_mutex_unlock(philo->l_fork_mutex);
+			pthread_mutex_unlock(philo->r_fork_mutex);
+			return ;
+		}
+		if(ft_finish_eat(philo) == -1)
+			return ;
 	}
-	if(ft_finish_eat(philo) == -1)
-		return ;
 }
 
 void	ft_is_sleeping(t_phi *philo)

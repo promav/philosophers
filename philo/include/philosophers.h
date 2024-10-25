@@ -6,7 +6,7 @@
 /*   By: pabromer <pabromer@student.42malaga.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/09/17 15:27:45 by pabromer          #+#    #+#             */
-/*   Updated: 2024/10/10 19:01:38 by pabromer         ###   ########.fr       */
+/*   Updated: 2024/10/14 15:43:07 by pabromer         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,7 @@ typedef struct philosopher
 void			ft_init_mutex_forks(t_phi *philo, char **argv, \
 pthread_mutex_t *forks, pthread_mutex_t	*print_mutex);
 pthread_mutex_t	*ft_init_forks(char **argv, t_phi *philo);
-void			ft_init_mutex_null(t_phi **philo, char **argv);
+void			ft_init_mutex_null(t_phi **philo);
 t_phi			*ft_init_philosophers(char **argv);
 void			*ft_philosofer_rutine(void *param);
 void			*ft_observer_rutine(void *param);
@@ -55,5 +55,6 @@ int			ft_finish_eat(t_phi *philo);
 void			ft_is_sleeping(t_phi *philo);
 int				ft_is_dead(t_phi *philo);
 int				print_has_fork(t_phi *philo);
+int			ft_must_eat_checker(t_phi *philo, unsigned int i);
 
 #endif

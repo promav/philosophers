@@ -6,7 +6,7 @@
 /*   By: pabromer <pabromer@student.42malaga.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/08 15:52:22 by pabromer          #+#    #+#             */
-/*   Updated: 2024/10/10 18:10:37 by pabromer         ###   ########.fr       */
+/*   Updated: 2024/10/25 14:27:17 by pabromer         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,7 +57,7 @@ pthread_mutex_t	*ft_init_forks(char **argv, t_phi *philo)
 	return (forks);
 }
 
-void	ft_init_mutex_null(t_phi **philo, char **argv)
+void	ft_init_mutex_null(t_phi **philo)
 {
 	(*philo)->l_fork_mutex = NULL;
 	(*philo)->r_fork_mutex = NULL;
@@ -82,7 +82,7 @@ void	ft_fill_philosophers(char **argv, t_phi *philo, int n_philo)
 		if (argv[5])
 			philo[i].must_eat = atoi(argv[5]);
 		else
-			philo[i].must_eat = 0;
+			philo[i].must_eat = -1;
 		philo[i].last_meal = 0;
 		philo[i].start_time = start_time;
 		philo[i].num_philo = n_philo;
